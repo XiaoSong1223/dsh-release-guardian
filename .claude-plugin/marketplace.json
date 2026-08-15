@@ -1,0 +1,22 @@
+{
+  "name": "release-guardian",
+  "owner": {
+    "name": "XiaoSong",
+    "url": "https://github.com/XiaoSong1223"
+  },
+  "description": "Local, deterministic release-risk checks for Git changes.",
+  "plugins": [
+    {
+      "name": "dsh-release-guardian",
+      "source": "./",
+      "description": "Audit the current Git diff for secrets, dangerous changes, and missing verification, then explain the verdict.",
+      "category": "Developer Tools",
+      "tags": [
+        "release",
+        "security",
+        "code-review",
+        "git"
+      ]
+    }
+  ]
+}

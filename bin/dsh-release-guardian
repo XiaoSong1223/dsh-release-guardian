@@ -1,0 +1,30 @@
+#!/usr/bin/env node
+// Claude Code adds a plugin's bin/ directory to the Bash tool's PATH, so this launcher
+// makes `dsh-release-guardian` a bare command in a session without a global install.
+// It only locates and executes the real CLI: no flags are added, removed, or rewritten,
+// so the CLI's own authorization gate for --run-checks stays the only execution gate.
+import { spawnSync } from 'node:child_process'
+import { constants } from 'node:os'
+import { launcherEnv, resolveGuardianCli, unresolvedMessage } from '../scripts/guardian-cli-path.mjs'
+
+const resolved = resolveGuardianCli({ moduleUrl: import.meta.url })
+if (resolved === null) {
+  process.stderr.write(`${unresolvedMessage(import.meta.url)}\n`)
+  // EX_UNAVAILABLE: distinct from every verdict and usage exit code the CLI itself returns.
+  process.exit(69)
+}
+
+const [command, ...leadingArgs] = resolved.argv
+const result = spawnSync(command, [...leadingArgs, ...process.argv.slice(2)], {
+  stdio: 'inherit',
+  env: launcherEnv(),
+})
+
+if (result.error !== undefined) {
+  process.stderr.write(`${resolved.argv.join(' ')}: ${result.error.message}\n`)
+  process.exit(69)
+}
+if (result.signal !== null && result.signal !== undefined) {
+  process.exit(128 + (constants.signals[result.signal] ?? 0))
+}
+process.exit(result.status ?? 69)

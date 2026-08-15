@@ -2,6 +2,20 @@
 
 All notable changes to DSH Release Guardian are documented here.
 
+## Unreleased
+
+### Added
+
+- Claude Code plugin manifest and single-plugin marketplace entry in `.claude-plugin/`.
+- `bin/dsh-release-guardian` launcher, which puts the CLI on a Claude Code session's `PATH` without a global install and forwards arguments and exit codes unchanged.
+- Read-only `release-auditor` subagent that keeps a full JSON report out of the main conversation.
+- Opt-in `PreToolUse` commit gate that scans what a `git commit` would record and denies the commit on a `block` verdict.
+
+### Security
+
+- The commit gate is off by default, reports only rule IDs and paths, and never crosses the project-code execution boundary.
+- The plugin ships no `allowed-tools` pre-approval, because a `dsh-release-guardian check` prefix rule would also pre-approve `--run-checks`.
+
 ## 0.1.0 - 2026-08-15
 
 ### Added
