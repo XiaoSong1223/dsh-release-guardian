@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "types": ["node", "vitest/globals"],
+    "rootDir": ".",
+    "outDir": "lib"
+  },
+  "include": ["src/**/*.ts", "tests/**/*.ts"],
+  "exclude": ["lib", "node_modules"]
+}

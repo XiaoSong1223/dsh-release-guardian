@@ -1,0 +1,6 @@
+node_modules/
+lib/
+coverage/
+.DS_Store
+*.tgz
+.release-guardian-report.json

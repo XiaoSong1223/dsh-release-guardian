@@ -1,0 +1,13 @@
+- insert:
+    - id: release-guardian
+      name: dsh-release-guardian
+      config:
+        workspaceRoot: .
+        maxDiffBytes: 10485760
+        maxFiles: 5000
+        maxFindings: 500
+        maxCheckOutputBytes: 65536
+        checkTimeoutMs: 600000
+        includeUntracked: true
+        manifestDepth: 4
+        maxChecks: 256
