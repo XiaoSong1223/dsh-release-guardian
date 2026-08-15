@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process'
+import spawn from 'cross-spawn'
 import type { ProcessResult } from './types.js'
 
 export interface RunOptions {
@@ -84,13 +84,13 @@ export async function runArgv(argv: readonly string[], options: RunOptions): Pro
     options.signal?.addEventListener('abort', abort, { once: true })
     if (options.signal?.aborted === true) abort()
 
-    child.stdout.on('data', (chunk: Buffer) => {
+    child.stdout!.on('data', (chunk: Buffer) => {
       const next = appendTailBuffer(stdoutChunks, stdoutBytes, chunk, options.maxOutputBytes)
       stdoutChunks = next.chunks
       stdoutBytes = next.bytes
       truncated ||= next.truncated
     })
-    child.stderr.on('data', (chunk: Buffer) => {
+    child.stderr!.on('data', (chunk: Buffer) => {
       const next = appendTailBuffer(stderrChunks, stderrBytes, chunk, options.maxOutputBytes)
       stderrChunks = next.chunks
       stderrBytes = next.bytes

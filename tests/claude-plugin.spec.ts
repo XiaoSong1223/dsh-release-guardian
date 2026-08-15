@@ -78,7 +78,7 @@ describe('Claude Code commit gate configuration', () => {
 })
 
 describe('release-auditor agent', () => {
-  const source = readFileSync(join(projectRoot, 'agents/release-auditor.md'), 'utf8')
+  const source = readFileSync(join(projectRoot, 'agents/release-auditor.md'), 'utf8').replace(/\r\n/gu, '\n')
 
   it('declares a read-only tool set', () => {
     expect(source.startsWith('---\n')).toBe(true)
@@ -112,7 +112,7 @@ describe('bin launcher', () => {
   })
 
   function launch(args: string[], env: NodeJS.ProcessEnv = {}) {
-    return spawnSync(join(projectRoot, 'bin/dsh-release-guardian'), args, {
+    return spawnSync(process.execPath, [join(projectRoot, 'bin/dsh-release-guardian'), ...args], {
       encoding: 'utf8',
       env: { ...process.env, DSH_RELEASE_GUARDIAN_CLI: stubCli, ...env },
     })

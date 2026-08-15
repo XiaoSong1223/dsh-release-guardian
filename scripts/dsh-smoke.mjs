@@ -25,6 +25,7 @@ async function run(name, args, options = {}) {
     let stdout = ''
     let stderr = ''
     let settled = false
+    let timedOut = false
     const terminate = () => {
       try {
         if (!windows && child.pid !== undefined) process.kill(-child.pid, 'SIGKILL')
@@ -33,7 +34,10 @@ async function run(name, args, options = {}) {
         // The process has already exited.
       }
     }
-    const timer = setTimeout(terminate, timeoutMs)
+    const timer = setTimeout(() => {
+      timedOut = true
+      terminate()
+    }, timeoutMs)
     child.stdout.on('data', chunk => { stdout += chunk.toString() })
     child.stderr.on('data', chunk => { stderr += chunk.toString() })
     child.on('error', error => {
@@ -47,7 +51,9 @@ async function run(name, args, options = {}) {
       settled = true
       clearTimeout(timer)
       if (code === 0) resolvePromise({ stdout, stderr })
-      else rejectPromise(new Error(`${name} ${args.join(' ')} exited ${String(code)}\n${stdout}\n${stderr}`))
+      else rejectPromise(new Error(timedOut
+        ? `${name} ${args.join(' ')} timed out after ${String(timeoutMs)}ms\n${stdout}\n${stderr}`
+        : `${name} ${args.join(' ')} exited ${String(code)}\n${stdout}\n${stderr}`))
     })
   })
 }
@@ -78,12 +84,18 @@ try {
   const profile = join(home, 'profiles', profileName)
   const dshEnv = { ...process.env, DSH_HOME: home, DSH_TELEMETRY_DISABLED: '1' }
   const dsh = ['--yes', `@deepseek-ai/dsh@${DSH_VERSION}`]
-  await run('npx', [...dsh, 'plugin', '--profile', profileName, 'add', join(scratch, filename)], { env: dshEnv })
+  await run('npx', [...dsh, 'plugin', '--profile', profileName, 'add', join(scratch, filename)], {
+    env: dshEnv,
+    timeoutMs: 300_000,
+  })
 
   const peers = await run('pnpm', ['--dir', profile, 'peers', 'check'])
   assert(peers.stdout.includes('No peer dependency issues found'), 'profile peer dependency check did not pass')
 
-  const dump = await run('npx', [...dsh, '--profile', profileName, '--dump-config'], { env: dshEnv })
+  const dump = await run('npx', [...dsh, '--profile', profileName, '--dump-config'], {
+    env: dshEnv,
+    timeoutMs: 300_000,
+  })
   assert(dump.stdout.includes('# == dsh-release-guardian'), 'DSH did not compose the Release Guardian bundle layer')
   assert(dump.stdout.includes('name: dsh-release-guardian'), 'DSH config does not reference the packaged plugin')
 
@@ -121,7 +133,10 @@ export function apply(ctx) {
 }
 `)
   await writeFile(patchPath, '- insert:\n    - id: release-guardian-smoke-probe\n      name: ./probe.mjs\n')
-  const boot = await run('npx', [...dsh, '--profile', profileName, '--patch', patchPath], { env: dshEnv })
+  const boot = await run('npx', [...dsh, '--profile', profileName, '--patch', patchPath], {
+    env: dshEnv,
+    timeoutMs: 300_000,
+  })
   const marker = boot.stdout.split(/\r?\n/u).find(line => line.startsWith('DSH_TOOL_PROBE '))
   assert(marker !== undefined, 'DSH runtime probe produced no result')
   const result = JSON.parse(marker.slice('DSH_TOOL_PROBE '.length))

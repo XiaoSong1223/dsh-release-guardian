@@ -33,6 +33,14 @@ describe('authorized argv runner', () => {
     expect(results[0]?.stdoutTail).toBe('[REDACTED]')
   })
 
+  it('keeps shell metacharacters inside their approved argv element', async () => {
+    const literal = 'alpha & beta | gamma; delta'
+    const candidate = plan([process.execPath, '-e', 'process.stdout.write(process.argv[1])', literal])
+    const results = await executeChecks(root, [candidate], DEFAULT_CONFIG, true, [candidate.id], undefined)
+    expect(results[0]?.status).toBe('passed')
+    expect(results[0]?.stdoutTail).toBe(literal)
+  })
+
   it('redacts labeled credentials and URL userinfo from check output', async () => {
     const candidate = plan([
       process.execPath,

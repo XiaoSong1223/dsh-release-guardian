@@ -21,7 +21,7 @@ Review every displayed command before authorizing it.
 
 Execution is allowed only for a complete `worktree` scan with untracked files included. Approval IDs are derived from the canonical repository, effective baseline policy, manifest plan, and exact diff fingerprint. Any relevant source or configuration change invalidates prior approval.
 
-Configured commands may contain arbitrary argv. Adding a command to `.release-guardian.yml` only adds it to discovery; configuration is never an execution grant. Commands execute directly as argv with `shell: false`, so shell syntax is not implicitly interpreted.
+Configured commands may contain arbitrary argv. Adding a command to `.release-guardian.yml` only adds it to discovery; configuration is never an execution grant. Commands are passed as argv with `shell: false`. On Windows, `.cmd` launchers are resolved with escaped arguments, so shell syntax inside an argv element is not treated as another command.
 
 ## Trusted policy and coverage
 
@@ -51,7 +51,7 @@ The design specifically aims to detect common release risks in the selected Git 
 - approval cannot be reused across materially different repository states;
 - repository-relative paths cannot escape the canonical root during scanning or configuration loading;
 - findings and captured output apply bounded redaction;
-- check argv is not interpreted through a shell.
+- check argv is not accepted as a shell command, and Windows shim arguments are escaped individually.
 
 ## Non-goals and residual risk
 

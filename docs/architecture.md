@@ -62,7 +62,7 @@ The manifest exists so one release artifact can expose a guided Codex workflow w
 6. Apply deterministic rules and redact secret evidence.
 7. Discover project checks by reading manifests. Discovery does not run package scripts or install dependencies.
 8. Bind each check ID to the canonical repository, effective policy, manifest, and diff fingerprint.
-9. If and only if execution is explicitly authorized, run the selected argv plans without a shell and capture bounded, redacted output tails.
+9. If and only if execution is explicitly authorized, run the selected argv plans as argument arrays and capture bounded, redacted output tails. Windows command shims use escaped argv handling rather than accepting a caller-provided shell string.
 10. Produce a verdict and either human-readable text or the [versioned JSON report](./output-schema.md).
 
 ## Scope and trust boundaries
