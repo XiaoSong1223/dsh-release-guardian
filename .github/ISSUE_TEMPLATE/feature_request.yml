@@ -1,0 +1,62 @@
+name: Feature request
+description: Propose a focused rule, integration, or usability improvement.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Explain the release-risk or workflow problem before proposing an implementation. Use synthetic examples only; do not include private repository data or credentials.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight
+      options:
+        - label: I searched existing issues and did not find this request.
+          required: true
+        - label: This request preserves explicit authorization before project-code execution.
+          required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Detection rule
+        - Check discovery
+        - Standalone CLI
+        - DSH bundle
+        - Codex adapter
+        - Claude Code plugin
+        - JSON report contract
+        - Documentation or governance
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What release risk, false-positive class, or user workflow is not handled well today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe observable behavior, including rule disposition or output changes when relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: examples
+    attributes:
+      label: Synthetic examples and alternatives
+      description: Include a dangerous example, benign near-neighbor, and alternatives considered when applicable.
+  - type: checkboxes
+    id: compatibility
+    attributes:
+      label: Compatibility considerations
+      options:
+        - label: I considered the schema version 1 compatibility contract.
+        - label: I considered CLI, DSH, and optional Codex/Claude Code entry points.
+        - label: I considered redaction, truncation, and trusted-baseline behavior.

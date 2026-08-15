@@ -6,6 +6,10 @@ All notable changes to DSH Release Guardian are documented here.
 
 ### Added
 
+- Self-contained Codex runner shipped with the `release-guardian` skill, with a confirmed global-CLI fallback.
+- Source-tree and packed-tarball contract verification for DSH, CLI, Codex, documentation, and optional integration assets.
+- Tag-gated npm trusted publishing with provenance, immutable GitHub Release assets, and SHA-256 checksums.
+- Bilingual entry-point documentation, architecture/output/security/testing/troubleshooting guides, issue forms, pull-request guidance, and dependency update configuration.
 - Claude Code plugin manifest and single-plugin marketplace entry in `.claude-plugin/`.
 - `bin/dsh-release-guardian` launcher, which puts the CLI on a Claude Code session's `PATH` without a global install and forwards arguments and exit codes unchanged.
 - Read-only `release-auditor` subagent that keeps a full JSON report out of the main conversation.
@@ -13,6 +17,7 @@ All notable changes to DSH Release Guardian are documented here.
 
 ### Security
 
+- Release publication now requires package, tag, and changelog agreement plus the full test, audit, pack, and packed-profile smoke gates.
 - The commit gate is off by default, reports only rule IDs and paths, and never crosses the project-code execution boundary.
 - The plugin ships no `allowed-tools` pre-approval, because a `dsh-release-guardian check` prefix rule would also pre-approve `--run-checks`.
 

@@ -34,20 +34,24 @@
     "skills/",
     "assets/",
     "README.md",
+    "README.zh-CN.md",
+    "docs/",
     "CHANGELOG.md",
     "CONTRIBUTING.md",
     "SECURITY.md",
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && npm run build:codex",
+    "build:codex": "node scripts/build-codex-cli.mjs",
     "prepare": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:dsh": "node scripts/dsh-smoke.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "check": "npm run typecheck && npm test && npm run build && publint",
-    "pack:check": "npm pack --dry-run",
+    "check": "npm run typecheck && npm run build && npm test && npm run verify:package && publint && npm run pack:check",
+    "verify:package": "node scripts/verify-package.mjs",
+    "pack:check": "node scripts/pack-check.mjs",
     "guardian:self": "node lib/cli.js check --repo . --format text"
   },
   "dsh": {
@@ -94,6 +98,7 @@
     "@deepseek-ai/dsh-system-prompt": "0.1.0-rc.6",
     "@deepseek-ai/dsh-tools": "0.1.0-rc.6",
     "@types/node": "^22.18.0",
+    "esbuild": "0.28.2",
     "publint": "0.3.16",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"

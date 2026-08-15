@@ -1,0 +1,83 @@
+name: Bug report
+description: Report a reproducible defect with synthetic or redacted data.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Release Guardian. Security-boundary bypasses and reports containing real credentials or private repository data must use GitHub's private security-advisory flow instead of this form.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight
+      options:
+        - label: I searched existing issues and did not find this report.
+          required: true
+        - label: This report contains only synthetic or redacted repository data and credentials.
+          required: true
+        - label: This is not a security-boundary bypass that requires private reporting.
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: Release Guardian version
+      description: Run `dsh-release-guardian --help` or provide the package version.
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: dropdown
+    id: entry_point
+    attributes:
+      label: Entry point
+      options:
+        - DSH bundle
+        - Standalone CLI
+        - Codex adapter
+        - Claude Code plugin
+        - Core library API
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, Node.js version, Git version, and DSH version when relevant.
+      placeholder: macOS 15; Node 22.19.0; Git 2.50; DSH 0.1.0-rc.6
+    validations:
+      required: true
+  - type: input
+    id: scope
+    attributes:
+      label: Scan scope
+      description: Diff mode, base/head refs, and whether untracked files were included.
+      placeholder: worktree against HEAD; include_untracked=true
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Provide exact commands and the smallest synthetic repository change that reproduces the issue.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include exit code, rule IDs, and a redacted report excerpt when useful.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add a minimal synthetic `.release-guardian.yml` or other non-sensitive detail that may help.

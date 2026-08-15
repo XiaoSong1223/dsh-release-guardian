@@ -1,7 +1,7 @@
 {
   "name": "dsh-release-guardian",
   "version": "0.1.0",
-  "description": "Local, deterministic release risk checks for DeepSeek Harness and Codex.",
+  "description": "Local, deterministic release-risk checks for DeepSeek Harness, Codex, and the command line.",
   "author": {
     "name": "XiaoSong"
   },
@@ -19,13 +19,17 @@
   "interface": {
     "displayName": "DSH Release Guardian",
     "shortDescription": "Audit release diffs for secrets, dangerous changes, and missing verification",
-    "longDescription": "Scan the current Git diff locally, discover project verification commands, and produce a deterministic release verdict. Release Guardian is read-only by default, sends no telemetry, and never publishes or deploys.",
+    "longDescription": "Audit the current Git diff locally, discover project verification commands, and produce a deterministic release verdict. The bundled runner works without a separate global CLI installation. Scanning is read-only by default, sends no telemetry, and never publishes or deploys.",
     "developerName": "XiaoSong",
     "category": "Developer Tools",
     "capabilities": ["Read", "Write", "Interactive"],
+    "websiteURL": "https://github.com/XiaoSong1223/dsh-release-guardian",
     "defaultPrompt": [
-      "Audit this repository with Release Guardian and explain anything that blocks or requires review."
+      "Audit this repository and explain anything that blocks release.",
+      "Review my staged changes for release risks.",
+      "Discover this project's checks without running them."
     ],
+    "brandColor": "#4C46E5",
     "logo": "./assets/release-guardian.svg"
   }
 }

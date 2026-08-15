@@ -3,7 +3,9 @@
 [![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-0.1.0--rc.6-4c46e5)](https://github.com/deepseek-ai/deepseek-harness)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-Local, deterministic release-risk checks for Git changes. It can be used as both a DeepSeek Harness host plugin and a standalone CLI.
+[简体中文](./README.zh-CN.md) · [Architecture](./docs/architecture.md) · [Security model](./docs/security-model.md) · [Troubleshooting](./docs/troubleshooting.md)
+
+Local, deterministic release-risk checks for Git changes. Use the same scanner through a DeepSeek Harness host tool, a standalone CLI, an optional Codex skill adapter, or an optional Claude Code plugin.
 
 中文概览：Release Guardian 在本机读取 Git 变更，检查新增代码和变更文件中的发布风险，并发现常见项目检查。默认只读，不执行项目代码；只有用户明确授权后才会运行所展示的检查命令。
 
@@ -14,8 +16,23 @@ Local, deterministic release-risk checks for Git changes. It can be used as both
 - Discovers test, typecheck, and build commands for JavaScript, Python, Go, Rust, Java, and .NET projects.
 - Produces a human-readable report or a versioned JSON report.
 - Registers the `release_guardian_check` tool when installed as a DeepSeek Harness bundle.
+- Gives Codex a safety-aware workflow through the optional `release-guardian` skill.
+- Installs into Claude Code as a plugin: the `release-guardian` skill, a read-only `release-auditor` subagent, a `dsh-release-guardian` command on the session `PATH`, and an opt-in pre-commit gate.
 
 Release Guardian is a risk signal, not a proof that a release is safe. A `ready` verdict means that this scan found no release-blocking condition within its configured scope.
+
+## Choose an entry point
+
+All entry points use the same release-report contract and the same explicit authorization boundary for project checks.
+
+| Entry point | Best for | How it runs |
+| --- | --- | --- |
+| **DSH bundle** | DeepSeek Harness profiles and tool calling | Installs the package bundle and registers `release_guardian_check`. |
+| **Standalone CLI** | Terminals, local scripts, and CI | Runs the packaged `dsh-release-guardian` executable. |
+| **Codex adapter (optional)** | Guided audits in Codex | Loads `skills/release-guardian/SKILL.md`; it prefers the bundled runner and falls back to `dsh-release-guardian` on `PATH` when the runner is unavailable. |
+| **Claude Code plugin (optional)** | Guided audits and an opt-in commit gate in Claude Code | Loads `.claude-plugin/plugin.json`; puts `dsh-release-guardian` on the Bash tool's `PATH` through `bin/`, and shares the same skill. |
+
+These are adapters, not separate scanners. See [Architecture](./docs/architecture.md) for the component and trust-boundary map.
 
 ## Safety model
 
@@ -44,6 +61,18 @@ Development setup and pull-request expectations are documented in [CONTRIBUTING.
 - For the DeepSeek Harness route: `pnpm` plus either `dsh` on `PATH` or the official `npx @deepseek-ai/dsh` launcher
 
 The host bundle is tested against `@deepseek-ai/dsh` `0.1.0-rc.6`. DeepSeek Harness is still a developer preview, so re-run the packed-profile smoke test when upgrading RC versions.
+
+## Compatibility
+
+| Surface | Supported / tested | Notes |
+| --- | --- | --- |
+| Node.js | `^22.19.0` or `>=24.0.0` | Required by the CLI, bundle, and bundled Codex runner. |
+| Git | Current Git with the CLI available on `PATH` | A target must be a local Git repository. |
+| DeepSeek Harness | `@deepseek-ai/dsh` `0.1.0-rc.6` | Developer preview; exact packed-profile smoke coverage is recorded in CI. |
+| Package managers | npm for building/installing; pnpm for the DSH profile | Git-source DSH installs may require explicit pnpm build approval. |
+| Codex adapter | Codex installations that load `.codex-plugin/plugin.json` or repository skills | Optional; direct skill copies must include the skill's `scripts/` directory. |
+| Claude Code plugin | Claude Code releases that load `.claude-plugin/plugin.json` | Optional; the `if` hook filter and `userConfig` options require a current Claude Code. Claude Code installs plugin dependencies with `npm ci --ignore-scripts`, so it never builds this package. |
+| Operating systems | Linux, macOS, Windows | Exercised by the Node.js CI matrix; language-specific checks also require their own toolchains. |
 
 ## Install
 
@@ -106,6 +135,57 @@ npx @deepseek-ai/dsh@0.1.0-rc.6 plugin --profile headless add \
 ```
 
 Replace `headless` with the profile you use. `dsh plugin` initializes a missing profile, forwards `add` to pnpm in that profile, and activates this package's `cordis.patch.yml` bundle. Boot the profile normally; it exposes the `release_guardian_check` host tool. This package does not provide a Web UI.
+
+### Optional Codex adapter
+
+This repository is also a Codex plugin bundle. Install or load the repository through Codex's plugin controls, then ask Codex to use the `release-guardian` skill for a release audit. The skill calls its self-contained runner at:
+
+```text
+skills/release-guardian/scripts/release-guardian.mjs
+```
+
+The runner makes the adapter work from the installed plugin without requiring a global CLI. If the companion script is unavailable, the adapter may fall back to `dsh-release-guardian` on `PATH`, which is useful for development and older package layouts.
+
+If you copy the skill manually instead of installing the plugin bundle, copy the **entire** `skills/release-guardian/` directory, including `scripts/release-guardian.mjs`. Copying only `SKILL.md` removes the bundled runner; in that case the adapter works only when a compatible `dsh-release-guardian` is already on `PATH`.
+
+Why does a DSH package contain `.codex-plugin/plugin.json`? It is distribution metadata for the optional Codex adapter: it tells Codex where the packaged skills and presentation assets live. It does not change DSH loading, register the DSH host tool, execute code at install time, or make Codex a runtime dependency of the scanner. Keeping this manifest in the same release artifact lets the DSH bundle, CLI, and Codex skill share one reviewed implementation and version.
+
+See [Troubleshooting](./docs/troubleshooting.md#codex-adapter) if Codex cannot find the skill or runner.
+
+### Optional Claude Code plugin
+
+This repository is also a Claude Code plugin and a single-plugin marketplace. Add the marketplace, then install the plugin:
+
+```text
+/plugin marketplace add XiaoSong1223/dsh-release-guardian
+/plugin install dsh-release-guardian@release-guardian
+```
+
+A local checkout works the same way and is the recommended way to try changes:
+
+```sh
+npm ci && npm run build
+```
+
+```text
+/plugin marketplace add /absolute/path/to/dsh-release-guardian
+/plugin install dsh-release-guardian@release-guardian
+```
+
+The plugin adds four surfaces:
+
+| Surface | What it does |
+| --- | --- |
+| `/release-guardian` skill | The shared skill: scan, explain the verdict, and request approval before any project check runs. |
+| `release-auditor` subagent | Runs a read-only audit in its own context and returns the verdict, findings, and check plan, so a large JSON report never fills the main conversation. |
+| `dsh-release-guardian` command | `bin/dsh-release-guardian` is placed on the Bash tool's `PATH`, so the CLI works in a session without a global install. It only locates and executes the real CLI; it never adds, removes, or rewrites a flag. |
+| Pre-commit gate (opt-in) | With the `commit_gate` option enabled, a `PreToolUse` hook scans what a `git commit` would record and denies the commit on a `block` verdict. |
+
+Claude Code never builds this package, so the launcher resolves a runnable CLI in this order: the `DSH_RELEASE_GUARDIAN_CLI` environment variable or the plugin's `cli_path` option, then the self-contained `skills/release-guardian/scripts/release-guardian.mjs`, then `lib/cli.js`, then a `dsh-release-guardian` already on `PATH`. The bundled runner comes before `lib/cli.js` because it needs no installed dependencies, and a plugin source without a lockfile never gets them. If nothing resolves, the launcher exits `69` and prints what to build or install; it never installs anything itself.
+
+The pre-commit gate is **off by default**. Enable it per user or project with the plugin's `commit_gate` option, or by exporting `DSH_RELEASE_GUARDIAN_COMMIT_GATE=1`. It scans `staged` changes, or the worktree for `git commit -a`, and reports only rule IDs and paths, never finding text. It is advisory, not a security boundary: a missing CLI, a timeout, or an unreadable report allows the commit and says the gate did not run.
+
+The plugin deliberately ships no `allowed-tools` pre-approval for the skill. A `Bash(dsh-release-guardian check:*)` rule would also pre-approve `--run-checks`, which would defeat the execution gate, so each command follows the session's normal permission flow.
 
 ## CLI
 
@@ -321,6 +401,14 @@ Call `release_guardian_check` with an absolute `repo_path`. The request schema v
 
 Supported host inputs are `schema_version`, `repo_path`, `config_path`, `mode`, `base`, `head`, `include_untracked`, `max_diff_bytes`, `categories`, `action`, and `approved_command_ids`.
 
+## Documentation
+
+- [Architecture](./docs/architecture.md): shared core, entry-point adapters, data flow, and packaging.
+- [JSON output schema](./docs/output-schema.md): schema version `1` fields and consumer guidance.
+- [Security model](./docs/security-model.md): execution boundary, authorization binding, and residual risk.
+- [Troubleshooting](./docs/troubleshooting.md): installation, DSH, Codex, scanning, and execution failures.
+- [Testing and verification](./docs/testing.md): local gates, coverage areas, and the packed-profile smoke test.
+
 ## Development
 
 ```sh
@@ -332,7 +420,7 @@ npm run check
 npm run guardian:self
 ```
 
-`npm run check` runs typechecking, tests, and a build. `npm run guardian:self` expects built output and scans this checkout without executing its discovered checks.
+`npm run check` runs typechecking, a production/Codex-runner build, tests, package verification, `publint`, and the pack check. `npm run guardian:self` expects built output and scans this checkout without executing its discovered checks.
 
 ## License
 

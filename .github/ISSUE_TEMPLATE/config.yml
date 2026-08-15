@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability privately
+    url: https://github.com/XiaoSong1223/dsh-release-guardian/security/advisories/new
+    about: Use a private advisory for authorization, path-boundary, redaction, or blocking-rule bypasses.
+  - name: Read the troubleshooting guide
+    url: https://github.com/XiaoSong1223/dsh-release-guardian/blob/main/docs/troubleshooting.md
+    about: Check installation, DSH, Codex, scan, and execution guidance before filing an issue.

@@ -1,20 +1,34 @@
 ---
 name: release-guardian
-description: Scan Git changes with the installed dsh-release-guardian CLI, explain release-risk findings and verdicts, discover project checks, and run checks only after explicit user approval. Use for pre-release review, pre-merge risk checks, staged or worktree audits, comparison-range audits, secret and CI risk screening, or machine-readable release reports.
+description: Scan Git changes with the plugin-bundled Release Guardian runner or an installed dsh-release-guardian CLI, explain release-risk findings and verdicts, discover project checks, and run checks only after explicit user approval. Use for pre-release review, pre-merge risk checks, staged or worktree audits, comparison-range audits, secret and CI risk screening, or machine-readable release reports.
 ---
 
 # Release Guardian
 
-Use the installed `dsh-release-guardian` CLI as a local release-risk scanner. Treat it as a decision aid, not a guarantee of safety.
+Use Release Guardian as a local release-risk scanner. Treat it as a decision aid, not a guarantee of safety.
+
+## Resolve the runner
+
+Prefer the self-contained runner shipped with this skill. Resolve the directory containing this loaded `SKILL.md`, then use its `scripts/release-guardian.mjs` with the current Node.js executable. Always pass the runner an absolute path; do not assume the user's repository is the plugin directory.
+
+```sh
+node "/absolute/path/to/this/skill/scripts/release-guardian.mjs" --help
+```
+
+If that companion script is absent, fall back to `dsh-release-guardian` only after confirming it is available on `PATH`. If neither runner is available, stop and explain that the complete plugin or the standalone CLI must be installed. Do not install software without the user's request.
+
+In the examples below, `dsh-release-guardian` means the resolved invocation: either `node "/absolute/path/to/this/skill/scripts/release-guardian.mjs"` or the confirmed global command.
 
 ## Scan safely
 
-1. Resolve the exact repository root before scanning. Pass an absolute path to `--repo`; never rely on an ambiguous current directory.
+1. Resolve the exact repository root before scanning. Use the path the user named, or the current project directory when they named none, and pass the result as an absolute path to `--repo`; never rely on an ambiguous current directory.
 
    ```sh
    git -C "/path/provided/by/the/user" rev-parse --show-toplevel
    dsh-release-guardian check --repo "/absolute/repository/root" --format json
    ```
+
+   Substitute the resolved invocation from the previous section for `dsh-release-guardian` and keep every option identical.
 
 2. Select the narrowest diff mode matching the request:
 

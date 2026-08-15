@@ -1,0 +1,178 @@
+name: Release
+
+# Releases are deliberately tag-only. A manual dispatch has no immutable tag
+# identity to validate and must not be able to reach npm or GitHub publishing.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify release candidate
+    runs-on: ubuntu-latest
+    outputs:
+      checksum_name: ${{ steps.artifact.outputs.checksum_name }}
+      package_spec: ${{ steps.metadata.outputs.package_spec }}
+      tag: ${{ steps.metadata.outputs.tag }}
+      tarball_name: ${{ steps.artifact.outputs.tarball_name }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.x
+          cache: npm
+      - name: Validate tag and changelog
+        id: metadata
+        env:
+          GITHUB_REPOSITORY_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: node scripts/release-validate.mjs
+      - run: npm ci
+      - run: npm run check
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run pack:check
+      - name: Prepare packed DSH smoke test
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.19.0 --activate
+      - name: Run packed DSH smoke test
+        run: npm run test:dsh
+      - name: Pack the release artifact
+        run: |
+          mkdir release-assets
+          npm pack --json --pack-destination release-assets > release-assets/npm-pack.json
+      - name: Verify and seal the release artifact
+        id: artifact
+        run: node scripts/release-verify-pack.mjs release-assets/npm-pack.json release-assets
+      - name: Preserve the verified release artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: npm-package
+          path: |
+            ${{ steps.artifact.outputs.tarball }}
+            ${{ steps.artifact.outputs.checksum }}
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  publish:
+    name: Publish immutable release
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.x
+          cache: npm
+      - name: Use an npm CLI with trusted-publishing support
+        run: npm install --global npm@11.6.2
+      - name: Revalidate release identity
+        env:
+          GITHUB_REPOSITORY_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: node scripts/release-validate.mjs
+      - name: Restore the verified release artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: npm-package
+          path: release-assets
+      - name: Seal restored artifact permissions
+        env:
+          TARBALL: release-assets/${{ needs.verify.outputs.tarball_name }}
+          CHECKSUM: release-assets/${{ needs.verify.outputs.checksum_name }}
+        run: chmod 0444 "$TARBALL" "$CHECKSUM"
+      - name: Ensure release destinations are unused
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PACKAGE_SPEC: ${{ needs.verify.outputs.package_spec }}
+          RELEASE_TAG: ${{ needs.verify.outputs.tag }}
+        run: |
+          set +e
+          npm_result="$(npm view "$PACKAGE_SPEC" version --json --registry=https://registry.npmjs.org 2>&1)"
+          npm_status=$?
+          set -e
+          if [ "$npm_status" -eq 0 ]; then
+            echo "Refusing to overwrite published npm version $PACKAGE_SPEC" >&2
+            exit 1
+          fi
+          if [[ "$npm_result" != *"E404"* ]]; then
+            echo "Could not prove that $PACKAGE_SPEC is unpublished:" >&2
+            echo "$npm_result" >&2
+            exit 1
+          fi
+
+          set +e
+          release_result="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" 2>&1)"
+          release_status=$?
+          set -e
+          if [ "$release_status" -eq 0 ]; then
+            echo "Refusing to overwrite GitHub Release $RELEASE_TAG" >&2
+            exit 1
+          fi
+          if [[ "$release_result" != *"HTTP 404"* ]]; then
+            echo "Could not prove that GitHub Release $RELEASE_TAG is unused:" >&2
+            echo "$release_result" >&2
+            exit 1
+          fi
+      - name: Stage draft GitHub Release with verified assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.verify.outputs.tag }}
+          TARBALL: release-assets/${{ needs.verify.outputs.tarball_name }}
+          CHECKSUM: release-assets/${{ needs.verify.outputs.checksum_name }}
+        run: |
+          (cd "$(dirname "$CHECKSUM")" && sha256sum --check "$(basename "$CHECKSUM")")
+          gh release create "$RELEASE_TAG" "$TARBALL" "$CHECKSUM" \
+            --draft \
+            --verify-tag \
+            --generate-notes \
+            --title "$RELEASE_TAG"
+      - name: Publish to npm with OIDC provenance
+        env:
+          TARBALL: release-assets/${{ needs.verify.outputs.tarball_name }}
+          CHECKSUM: release-assets/${{ needs.verify.outputs.checksum_name }}
+        run: |
+          (cd "$(dirname "$CHECKSUM")" && sha256sum --check "$(basename "$CHECKSUM")")
+          npm publish "$TARBALL" --access public --provenance --registry=https://registry.npmjs.org
+      - name: Promote the verified GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.verify.outputs.tag }}
+        run: gh release edit "$RELEASE_TAG" --draft=false
+      - name: Report draft-release recovery path
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PACKAGE_SPEC: ${{ needs.verify.outputs.package_spec }}
+          RELEASE_TAG: ${{ needs.verify.outputs.tag }}
+        run: |
+          draft_state="$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft 2>/dev/null || true)"
+          if [ "$draft_state" != "true" ]; then
+            exit 0
+          fi
+          echo "A draft GitHub Release remains for $RELEASE_TAG." >&2
+          {
+            echo "### Draft release recovery"
+            echo
+            echo "A verified draft Release remains for $RELEASE_TAG. Do not delete or promote it until npm state is checked."
+            echo
+            printf '1. Check npm with `npm view %s version`.\n' "$PACKAGE_SPEC"
+            printf '2. If npm published successfully, finalize with `gh release edit %s --draft=false`.\n' "$RELEASE_TAG"
+            printf '3. If npm is confirmed unpublished, remove the draft with `gh release delete %s --yes` before rerunning the tag workflow.\n' "$RELEASE_TAG"
+          } >> "$GITHUB_STEP_SUMMARY"
