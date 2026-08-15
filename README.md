@@ -1,6 +1,5 @@
 # DSH Release Guardian
 
-[![CI](https://github.com/XiaoSong1223/dsh-release-guardian/actions/workflows/ci.yml/badge.svg)](https://github.com/XiaoSong1223/dsh-release-guardian/actions/workflows/ci.yml)
 [![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-0.1.0--rc.6-4c46e5)](https://github.com/deepseek-ai/deepseek-harness)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
