@@ -1,5 +1,9 @@
 # DSH Release Guardian
 
+<p align="center">
+  <img src="./assets/readme-hero.png" alt="DSH Release Guardian — 面向 Git 变更的确定性发布风险检查" width="100%" />
+</p>
+
 [English](./README.md) · [架构](./docs/architecture.md) · [安全模型](./docs/security-model.md) · [故障排查](./docs/troubleshooting.md)
 
 面向 Git 变更的本地、确定性发布风险检查器。它读取变更文件与新增代码，识别凭据泄露、危险 CI 配置、发布配置变更和高风险执行方式，并发现项目已有的测试、类型检查与构建命令。

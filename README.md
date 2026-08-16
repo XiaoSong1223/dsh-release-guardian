@@ -1,5 +1,9 @@
 # DSH Release Guardian
 
+<p align="center">
+  <img src="./assets/readme-hero.png" alt="DSH Release Guardian — deterministic release-risk checks for Git changes" width="100%" />
+</p>
+
 [![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-0.1.0--rc.6-4c46e5)](https://github.com/deepseek-ai/deepseek-harness)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
