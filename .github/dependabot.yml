@@ -10,6 +10,22 @@ updates:
       - dependencies
     commit-message:
       prefix: deps
+    # Toolchain majors that need a deliberate migration plan, not an automatic
+    # PR. Minor and patch updates are still opened as usual.
+    ignore:
+      # TypeScript majors change compiler behaviour, diagnostics and the
+      # emitted .d.ts surface this package publishes, so they need their own
+      # compatibility pass before landing.
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
+      # Keep @types/node pinned to the lowest supported Node major (see the
+      # "engines" field, currently ^22.19.0). Newer type majors would let
+      # TypeScript accept APIs that do not exist on the runtimes we support and
+      # test against. Raise this together with the engines floor.
+      - dependency-name: "@types/node"
+        update-types:
+          - version-update:semver-major
 
   - package-ecosystem: github-actions
     directory: "/"
