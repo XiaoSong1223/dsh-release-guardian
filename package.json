@@ -101,7 +101,7 @@
     "@types/cross-spawn": "6.0.6",
     "@types/node": "^22.18.0",
     "esbuild": "0.28.2",
-    "publint": "0.3.23",
+    "publint": "0.3.24",
     "typescript": "^5.9.2",
     "vitest": "^4.1.10"
   }
